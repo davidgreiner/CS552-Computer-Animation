@@ -11,9 +11,16 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
+#define ILUT_USE_OPENGL		// This MUST be defined before calling the DevIL headers or we don't get OpenGL functionality
+#include <IL/il.h>
+#include <IL/ilu.h>
+#include <IL/ilut.h>
+
 #define SCREEN_WIDTH	800
 #define SCREEN_HEIGHT	600
 #define WINDOW_TITLE	"CS552 Project 1"
+
+GLuint texture;
 
 // Output the message and pause the console if necessary.
 void PrintError(const char* str);
@@ -65,6 +72,13 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	// Initialise DevIL
+	ilutRenderer(ILUT_OPENGL);
+	ilInit();
+	iluInit();
+	ilutInit();
+	ilutRenderer(ILUT_OPENGL);
+
 	bool isRunning = true;
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -82,6 +96,17 @@ int main(int argc, char *argv[])
 
 	GLUquadricObj *sphere = NULL;
 	sphere = gluNewQuadric();
+	gluQuadricTexture(sphere, GL_TRUE);
+
+	ILstring textureFilename = "BasketballColor.jpg";
+	texture = ilutGLLoadImage(textureFilename);
+	std::cout << "Image width         : " << ilGetInteger(IL_IMAGE_WIDTH) << std::endl;
+	std::cout << "Image height        : " << ilGetInteger(IL_IMAGE_HEIGHT) << std::endl;
+	std::cout << "Image bits per pixel: " << ilGetInteger(IL_IMAGE_BITS_PER_PIXEL) << std::endl;
+
+	static const GLfloat lightPos[4] = { 2.0f, 2.0f, 2.0f, 0.0f };
+	glEnable(GL_LIGHT0);
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 
 	SDL_Event event;
 	while (isRunning)
@@ -106,7 +131,22 @@ int main(int argc, char *argv[])
 
 		//Draw here
 		glTranslatef(0.0f, 1.0f, -16.0f);
+
+		static const GLfloat	potamb[3] = { 0.8f, 0.8f, 0.8f },
+								potdfs[3] = { 0.9f, 0.9f, 0.9f },
+								potspc[3] = { 1.0f, 1.0f, 1.0f };
+
+		glEnable(GL_LIGHTING);
+
+		glMaterialfv(GL_FRONT, GL_AMBIENT, potamb);
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, potdfs);
+		glMaterialfv(GL_FRONT, GL_SPECULAR, potspc);
+		glMateriali(GL_FRONT, GL_SHININESS, 50);
+
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, texture);
 		gluSphere(sphere, 2, 20, 20);
+		glDisable(GL_TEXTURE_2D);
 
 		// Swap the OpenGL window buffers
 		SDL_GL_SwapWindow(window);
